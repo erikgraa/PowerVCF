@@ -47,6 +47,72 @@ add-type @"
 
 ####  Do not modify anything below this line. All user variables are in the accompanying JSON files #####
 
+######### Start Cloud Builder Operations ##########
+
+Function Connect-VCFCloudBuilder {
+<#
+    .SYNOPSIS
+    Connects to the specified Cloud Builder appliance and stores the credentials in a base64 string
+
+    .DESCRIPTION
+    The Connect-VCFCloudBuilder cmdlet connects to the specified Cloud Builder appliance and stores the
+    credentials in a base64 string. It is required once per session before running the SDDC cmdlets
+
+    .EXAMPLE
+    PS C:\> Connect-VCFCloudBuilder -fqdn sfo01cb01.sfo.rainpole.local -username admin -password VMware1!
+    This example shows how to connect to Cloud Builder appliance
+#>
+
+  Param (
+    [Parameter (Mandatory=$true)]
+      [ValidateNotNullOrEmpty()]
+      [string]$fqdn,
+		[Parameter (Mandatory=$false)]
+      [ValidateNotNullOrEmpty()]
+      [string]$username,
+		[Parameter (Mandatory=$false)]
+      [ValidateNotNullOrEmpty()]
+      [string]$password
+  )
+
+  if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("username"))) {
+    # Request Credentials
+    $creds = Get-Credential
+    $username = $creds.UserName.ToString()
+    $password = $creds.GetNetworkCredential().password
+  }
+
+  $Global:cloudBuiler = $fqdn
+  $Global:base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
+
+  # Validate credentials by executing an API call
+  $headers = @{"Accept" = "application/json"}
+  $headers.Add("Authorization", "Basic $base64AuthInfo")
+  $uri = "https://$cloudBuiler/v1/sddc-managers"
+
+  Try {
+    # Checking against the sddc-managers API
+    # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
+    if ($PSEdition -eq 'Core') {
+      $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers -SkipCertificateCheck
+    }
+    else {
+      $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers
+    }
+    if ($response.StatusCode -eq 200) {
+      Write-Host " Successfully connected to Cloud Builder appliance:" $cloudBuiler -ForegroundColor Yellow
+    }
+  }
+  Catch {
+    Write-Host "" $_.Exception.Message -ForegroundColor Red
+    Write-Host " Credentials provided did not return a valid API response (expected 200). Retry Connect-VCFCloudBuilder cmdlet" -ForegroundColor Red
+  }
+}
+Export-ModuleMember -Function Connect-VCFCloudBuilder
+
+######### End Cloud Builder Operations ##########
+
+
 Function Connect-VCFManager {
 <#
   .SYNOPSIS
@@ -3005,14 +3071,14 @@ Function New-VCFvRSLCM {
 <#
     .SYNOPSIS
     Deploy vRealize Suite Lifecycle Manager
-    
+
     .DESCRIPTION
     The New-VCFvRSLCM cmdlet deploys vRealize Suite Lifecycle Manager to the specified network.
-    
+
     .EXAMPLE
     PS C:\> New-VCFvRSLCM -json .\SampleJson\vRealize\New-vRSLCM.json
     This example deploys vRealize Suite Lifecycle Manager using a supplied json file
-    
+
     #>
 
     Param (
@@ -3027,7 +3093,7 @@ Function New-VCFvRSLCM {
     else {
         Try {
             # Call Function createHeader to set Accept & Authorization
-            createHeader 
+            createHeader
             # Read the json file contents into the $ConfigJson variable
             $ConfigJson = (Get-Content -Raw $json)
             $uri = "https://$sddcManager/v1/vrslcms"
@@ -3039,27 +3105,27 @@ Function New-VCFvRSLCM {
             ResponseException
         }
     }
-}   
+}
 Export-ModuleMember -Function New-VCFvRSLCM
 
 Function Remove-VCFvRSLCM {
 <#
     .SYNOPSIS
     Remove a failed vRealize Suite Lifecycle Manager deployment
-    
+
     .DESCRIPTION
-    The New-VCFvRSLCM cmdlet removes a failed vRealize Suite Lifecycle Manager deployment. Not applicable 
+    The New-VCFvRSLCM cmdlet removes a failed vRealize Suite Lifecycle Manager deployment. Not applicable
     to a successful vRealize Suite Lifecycle Manager deployment.
-    
+
     .EXAMPLE
     PS C:\> Remove-VCFvRSLCM
     This example removes a failed vRealize Suite Lifecycle Manager deployment
-    
+
     #>
 
     Try {
         # Call Function createHeader to set Accept & Authorization
-        createHeader 
+        createHeader
         $uri = "https://$sddcManager/v1/vrslcm"
         $response = Invoke-RestMethod -Method DELETE -URI $uri -headers $headers
         $response
@@ -3068,7 +3134,7 @@ Function Remove-VCFvRSLCM {
         # Call Function ResponseException to get error response from the exception
         ResponseException
     }
-}   
+}
 Export-ModuleMember -Function Remove-VCFvRSLCM
 
 
@@ -3369,11 +3435,11 @@ Function Get-VCFApplicationVirtualNetwork {
   <#
   .SYNOPSIS
   Retrieves all Application Virtual Networks
-  
+
   .DESCRIPTION
   The Get-VCFApplicationVirtualNetwork cmdlet retrieves the Application Virtual Networks configured in SDDC Manager
     - regionType supports REGION_A, REGION_B, X_REGION
-  
+
   .EXAMPLE
   PS C:\> Get-VCFApplicationVirtualNetwork
   This example demonstrates how to retrieve a list of Application Virtual Networks
