@@ -62,53 +62,134 @@ Function Connect-VCFCloudBuilder {
     PS C:\> Connect-VCFCloudBuilder -fqdn sfo01cb01.sfo.rainpole.local -username admin -password VMware1!
     This example shows how to connect to Cloud Builder appliance
 #>
+    Param (
+        [Parameter (Mandatory=$true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$fqdn,
+        [Parameter (Mandatory=$false)]
+            [ValidateNotNullOrEmpty()]
+            [string]$username,
+        [Parameter (Mandatory=$false)]
+            [ValidateNotNullOrEmpty()]
+            [string]$password
+    )
 
-  Param (
-    [Parameter (Mandatory=$true)]
-      [ValidateNotNullOrEmpty()]
-      [string]$fqdn,
-		[Parameter (Mandatory=$false)]
-      [ValidateNotNullOrEmpty()]
-      [string]$username,
-		[Parameter (Mandatory=$false)]
-      [ValidateNotNullOrEmpty()]
-      [string]$password
-  )
-
-  if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("username"))) {
-    # Request Credentials
-    $creds = Get-Credential
-    $username = $creds.UserName.ToString()
-    $password = $creds.GetNetworkCredential().password
-  }
-
-  $Global:cloudBuiler = $fqdn
-  $Global:base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
-
-  # Validate credentials by executing an API call
-  $headers = @{"Accept" = "application/json"}
-  $headers.Add("Authorization", "Basic $base64AuthInfo")
-  $uri = "https://$cloudBuiler/v1/sddc-managers"
-
-  Try {
-    # Checking against the sddc-managers API
-    # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
-    if ($PSEdition -eq 'Core') {
-      $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers -SkipCertificateCheck
+    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("username"))) {
+        # Request Credentials
+        $creds = Get-Credential
+        $username = $creds.UserName.ToString()
+        $password = $creds.GetNetworkCredential().password
     }
-    else {
-      $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers
+
+    $Global:cloudBuilder = $fqdn
+    $Global:base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
+
+    # Validate credentials by executing an API call
+    $headers = @{"Accept" = "application/json"}
+    $headers.Add("Authorization", "Basic $base64AuthInfo")
+    $uri = "https://$cloudBuilder/v1/sddcs/validations"
+
+    Try {
+        # Checking against the Cloud Builder API
+        # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
+        if ($PSEdition -eq 'Core') {
+            $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers -SkipCertificateCheck
+        }
+        else {
+            $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers
+        }
+        if ($response.StatusCode -eq 200) {
+            Write-Host " Successfully connected to Cloud Builder appliance:" $cloudBuilder -ForegroundColor Yellow
+        }
     }
-    if ($response.StatusCode -eq 200) {
-      Write-Host " Successfully connected to Cloud Builder appliance:" $cloudBuiler -ForegroundColor Yellow
+    Catch {
+        Write-Host "" $_.Exception.Message -ForegroundColor Red
+        Write-Host " Credentials provided did not return a valid API response (expected 200). Retry Connect-VCFCloudBuilder cmdlet" -ForegroundColor Red
     }
-  }
-  Catch {
-    Write-Host "" $_.Exception.Message -ForegroundColor Red
-    Write-Host " Credentials provided did not return a valid API response (expected 200). Retry Connect-VCFCloudBuilder cmdlet" -ForegroundColor Red
-  }
 }
 Export-ModuleMember -Function Connect-VCFCloudBuilder
+
+Function Get-VCFSddc {
+<#
+    .SYNOPSIS
+    Get a list of SDDC deployments from Cloud Builder
+
+    .DESCRIPTION
+    The Get-VCFSddc cmdlet retrieves the SDDC deployments from Cloud Builder
+
+    .EXAMPLE
+    PS C:\> Get-VCFSddc
+    This example shows how to retrieve a list of SDDC deployments from Cloud Builder
+
+    .EXAMPLE
+    PS C:\> Get-VCFSddc -id 60d6b676-47ae-4286-b4fd-287a888fb2d0
+    This example shows how to return the details for a specific SDDC deployment based on the ID
+#>
+    Param (
+        [Parameter (Mandatory=$false)]
+            [ValidateNotNullOrEmpty()]
+            [string]$id
+    )
+
+    Try {
+        createHeader # Calls Function createHeader to set Accept & Authorization
+        if ($PsBoundParameters.ContainsKey("id")) {
+            $uri = "https://$cloudBuilder/v1/sddcs/$id"
+            $response = Invoke-RestMethod -Method GET -URI $uri -headers $headers
+            $response
+        }
+        if (-not $PsBoundParameters.ContainsKey("id")) {
+            $uri = "https://$cloudBuilder/v1/sddcs"
+            $response = Invoke-RestMethod -Method GET -URI $uri -headers $headers
+            $response
+        }
+    }
+    Catch {
+        ResponseException # Call Function ResponseException to get error response from the exception
+    }
+}
+Export-ModuleMember -Function Get-VCFSddc
+
+Function Get-VCFSddcValidation {
+<#
+    .SYNOPSIS
+    Get a list of SDDC validations from Cloud Builder
+
+    .DESCRIPTION
+    The Get-VCFSddcValidation cmdlet retrieves the SDDC validations from Cloud Builder
+
+    .EXAMPLE
+    PS C:\> Get-VCFSddcValidation
+    This example shows how to retrieve a list of SDDC validations from Cloud Builder
+
+    .EXAMPLE
+    PS C:\> Get-VCFSddcValidation -id 60d6b676-47ae-4286-b4fd-287a888fb2d0
+    This example shows how to return the details for a specific validation based on the ID
+#>
+    Param (
+        [Parameter (Mandatory=$false)]
+            [ValidateNotNullOrEmpty()]
+            [string]$id
+    )
+
+    Try {
+        createHeader # Calls Function createHeader to set Accept & Authorization
+        if ($PsBoundParameters.ContainsKey("id")) {
+            $uri = "https://$cloudBuilder/v1/sddcs/validations/$id"
+            $response = Invoke-RestMethod -Method GET -URI $uri -headers $headers
+            $response | ConvertTo-Json
+        }
+        if (-not $PsBoundParameters.ContainsKey("id")) {
+            $uri = "https://$cloudBuilder/v1/sddcs/validations"
+            $response = Invoke-RestMethod -Method GET -URI $uri -headers $headers
+            $response.elements | ConvertTo-Json
+        }
+    }
+    Catch {
+        ResponseException # Call Function ResponseException to get error response from the exception
+    }
+}
+Export-ModuleMember -Function Get-VCFSddcValidation
 
 ######### End Cloud Builder Operations ##########
 
@@ -3503,7 +3584,7 @@ Function ResponseException {
     $responseStream = $_.exception.response.GetResponseStream()
     $reader = New-Object system.io.streamreader($responseStream)
     $responseBody = $reader.readtoend()
-    $ErrorString = "Exception occured calling invoke-restmethod. $($response.StatusCode.value__) : $($response.StatusDescription) : Response Body: $($responseBody)"
+    $ErrorString = "Exception occured calling Invoke-RestMethod. $($response.StatusCode.value__) : $($response.StatusDescription) : Response Body: $($responseBody)"
     Throw $ErrorString
     Write-Host ""
   }
