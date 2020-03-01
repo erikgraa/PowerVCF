@@ -139,9 +139,9 @@ Function Get-VCFSddc {
             $response
         }
         if (-not $PsBoundParameters.ContainsKey("id")) {
-            $uri = "https://$cloudBuilder/v1/sddcs"
+            $uri = "https://$cloudBuilder/v1/sddcs/"
             $response = Invoke-RestMethod -Method GET -URI $uri -headers $headers
-            $response
+            $response.elements
         }
     }
     Catch {
