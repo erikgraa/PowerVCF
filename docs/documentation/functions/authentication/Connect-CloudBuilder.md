@@ -7,7 +7,7 @@ Requests an authentication token from a VMware Cloud Builder instance.
 ## Syntax
 
 ```powershell
-Connect-CloudBuilder [-Fqdn] <String> [[-UserName] <String>] [[-Password] <String>] [[-Credential] <PSCredential>] [-SkipCertificateCheck] [<CommonParameters>]
+Connect-CloudBuilder [-fqdn] <String> [[-username] <String>] [[-password] <String>] [[-credential] <PSCredential>] [-skipCertificateCheck] [<CommonParameters>]
 ```
 
 ## Description
@@ -23,7 +23,7 @@ The `Connect-CloudBuilder` cmdlet connects to the specified VMware Cloud Builder
 ### Example 1
 
 ```powershell
-Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin -Password VMw@re1!
+Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password VMw@re1!
 ```
 
 This example shows how to connect to the specified VMware Cloud Builder instance.
@@ -32,7 +32,7 @@ This example shows how to connect to the specified VMware Cloud Builder instance
 
 ```powershell
 $secureString = Read-Host -AsSecureString 'Password'
-Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin -Password $secureString
+Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password $secureString
 ```
 
 This example shows how to connect to the specified VMware Cloud Builder instance.
@@ -40,7 +40,7 @@ This example shows how to connect to the specified VMware Cloud Builder instance
 ### Example 3
 
 ```powershell
-Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin
+Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin
 ```
 
 This example shows how to connect to the specified VMware Cloud Builder instance.
@@ -49,8 +49,8 @@ The operator will be prompted for a password.
 ### Example 4
 
 ```powershell
-$credential = Get-Credential
-Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -Credential $credential
+$credential = Get-credential
+Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -credential $credential
 ```
 
 This example shows how to connect to the specified VMware Cloud Builder instance.
@@ -58,7 +58,7 @@ This example shows how to connect to the specified VMware Cloud Builder instance
 ### Example 5
 
 ```powershell
-Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io
+Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io
 ```
 
 This example shows how to connect to the VMware Cloud Builder instance.
@@ -66,7 +66,7 @@ The operator will be prompted for a username and password.
 
 ## Parameters
 
-### -Fqdn
+### -fqdn
 
 The fully qualified domain name of the VMware Cloud Builder instance.
 
@@ -82,7 +82,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -UserName
+### -username
 
 The username to authenticate to the VMware Cloud Builder instance.
 
@@ -98,7 +98,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Password
+### -password
 
 The password to authenticate to the VMware Cloud Builder instance. 
 This parameter takes either a string or a SecureString variable.
@@ -116,7 +116,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Credential
+### -credential
 
 Specifies a user account to authenticate to the SDDC Manager instance.
 
@@ -132,7 +132,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SkipCertificateCheck
+### -skipCertificateCheck
 
 Switch to skip certificate check when connecting to the VMware Cloud Builder instance.
 

@@ -54,41 +54,41 @@ Function Request-VCFToken {
         It is required once per session before running all other cmdlets.
 
         .EXAMPLE
-        Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName administrator@vsphere.local -Password VMw@re1!
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username administrator@vsphere.local -password VMw@re1!
         This example shows how to connect to SDDC Manager to request API access and refresh tokens.
 
         .EXAMPLE
         $secureString = Read-Host -AsSecureString 'Password'
-        Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName admin@local -Password $secureString
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local -password $secureString
         This example shows how to connect to the SDDC Manager instance using local account admin@local.
 
         .EXAMPLE
-        Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName admin@local
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local
         This example shows how to connect to the SDDC Manager instance using local account admin@local.
         The operator will be prompted for a password.
 
         .EXAMPLE
         $credential = Get-Credential
-        Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -Credential $credential
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -credential $credential
         This example shows how to connect to the SDDC Manager instance.
 
         .EXAMPLE
-        Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io
         This example shows how to connect to the SDDC Manager instance.
         The operator will be prompted for a username and password.
 
-        .PARAMETER Fqdn
+        .PARAMETER fqdn
         The fully qualified domain name of the SDDC Manager instance.
 
-        .PARAMETER UserName
+        .PARAMETER username
         The username to authenticate to the SDDC Manager instance.
 
-        .PARAMETER Password
+        .PARAMETER password
         The password to authenticate to the SDDC Manager instance. 
         This parameter takes either a string or a SecureString variable.
         If not specified, a SecureString variable will be prompted for.
 
-        .PARAMETER Credential
+        .PARAMETER credential
         Specifies a user account to authenticate to the SDDC Manager instance.
 
         .PARAMETER skipCertificateCheck
@@ -100,55 +100,50 @@ Function Request-VCFToken {
         [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')]
     	[Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')]
         [ValidateNotNullOrEmpty()]
-        [string]$Fqdn,
+        [string]$fqdn,
 
         [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')]
       	[ValidateNotNullOrEmpty()]
-      	[string]$UserName,
+      	[string]$username,
 
         [Parameter (Mandatory = $false, ParameterSetName = 'UserNameAndPasswordSet')]
         [ValidateNotNullOrEmpty()]
-        [Object]$Password,
+        [Object]$password,
 
         [Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')]
         [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]$Credential,            
+        [System.Management.Automation.Credential()]$credential,            
 
         [Parameter (Mandatory = $false)]
         [ValidateNotNullOrEmpty()] 
-        [Switch]$SkipCertificateCheck
+        [Switch]$skipCertificateCheck
     )
 
     try {
         if ($PSCmdlet.ParameterSetName -eq 'UserNameAndPasswordSet') {
             $user = $UserName
 
-            if (-not($PSBoundParameters.ContainsKey('Password'))) {
-                $Password = Read-Host -AsSecureString 'Password'
-                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
-            }
-            elseif ($Password -isnot [SecureString]) {
-                if ($Password -isnot [System.String]) {
+            if (-not($PSBoundParameters.ContainsKey('password'))) {
+                $password = Read-Host -AsSecureString 'Password'
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+            } elseif ($password -isnot [SecureString]) {
+                if ($password -isnot [System.String]) {
                     throw 'Password should either be a String or (preferrably) a SecureString'
+                } else {
+                    $decryptedPassword = $password
                 }
-                else {
-                    $decryptedPassword = $Password
-                }
-            } 
-            else {
-                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+            } else {
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
             }
-        }
-        elseif ($PSCmdlet.ParameterSetName -eq 'PSCredentialSet') {
+        } elseif ($PSCmdlet.ParameterSetName -eq 'PSCredentialSet') {
             $user = $Credential.UserName
             $decryptedPassword = $Credential.GetNetworkCredential().Password
         }
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    if ($PsBoundParameters.ContainsKey("SkipCertificateCheck")) {
+    if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
         if (-not("placeholder" -as [type])) {
             add-type -TypeDefinition @"
 using System;
@@ -206,44 +201,44 @@ Function Connect-CloudBuilder {
         credentials in a base64 string.
 
         .EXAMPLE
-        Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin -Password VMw@re1!
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password VMw@re1!
         This example shows how to connect to the VMware Cloud Builder instance.
 
         .EXAMPLE
         $secureString = Read-Host -AsSecureString 'Password'
-        Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin -Password $secureString
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password $secureString
         This example shows how to connect to the specified VMware Cloud Builder instance.
 
         .EXAMPLE
-        Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin
         This example shows how to connect to the specified VMware Cloud Builder instance.
         The operator will be prompted for a password.
 
         .EXAMPLE
         $credential = Get-Credential        
-        Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -Credential $credential
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -credential $credential
         This example shows how to connect to the specified VMware Cloud Builder instance.
 
         .EXAMPLE
-        Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io
         This example shows how to connect to the VMware Cloud Builder instance.
         The operator will be prompted for a username and password.
 
-        .PARAMETER Fqdn
+        .PARAMETER fqdn
         The fully qualified domain name of the VMware Cloud Builder instance.
 
-        .PARAMETER UserName
+        .PARAMETER username
         The username to authenticate to the VMware Cloud Builder instance.
 
-        .PARAMETER Password
+        .PARAMETER password
         The password to authenticate to the VMware Cloud Builder instance. 
         This parameter takes either a string or a SecureString variable.
         If not specified, a SecureString variable will be prompted for.
 
-        .PARAMETER Credential
+        .PARAMETER credential
         Specifies a user account to authenticate to the SDDC Manager instance.
 
-        .PARAMETER SkipCertificateCheck
+        .PARAMETER skipCertificateCheck
         Switch to skip certificate check when connecting to the VMware Cloud Builder instance.
     #>
 
@@ -252,55 +247,50 @@ Function Connect-CloudBuilder {
         [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')]
     	[Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')]
         [ValidateNotNullOrEmpty()]
-        [string]$Fqdn,
+        [string]$fqdn,
 
         [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')]
       	[ValidateNotNullOrEmpty()]
-      	[string]$UserName,
+      	[string]$username,
 
         [Parameter (Mandatory = $false, ParameterSetName = 'UserNameAndPasswordSet')]
         [ValidateNotNullOrEmpty()]
-        [Object]$Password,
+        [Object]$password,
 
         [Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')]
         [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]$Credential,            
+        [System.Management.Automation.Credential()]$credential,            
 
         [Parameter (Mandatory = $false)]
         [ValidateNotNullOrEmpty()] 
-        [Switch]$SkipCertificateCheck
+        [Switch]$skipCertificateCheck
     )
 
     try {
         if ($PSCmdlet.ParameterSetName -eq 'UserNameAndPasswordSet') {
-            $user = $UserName
+            $user = $username
 
-            if (-not($PSBoundParameters.ContainsKey('Password'))) {
+            if (-not($PSBoundParameters.ContainsKey('password'))) {
                 $Password = Read-Host -AsSecureString 'Password'
-                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
-            }
-            elseif ($Password -isnot [SecureString]) {
-                if ($Password -isnot [System.String]) {
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+            } elseif ($password -isnot [SecureString]) {
+                if ($password -isnot [System.String]) {
                     throw 'Password should either be a String or (preferrably) a SecureString'
+                } else {
+                    $decryptedPassword = $password
                 }
-                else {
-                    $decryptedPassword = $Password
-                }
-            } 
-            else {
-                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+            } else {
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
             }
-        }
-        elseif ($PSCmdlet.ParameterSetName -eq 'PSCredentialSet') {
+        } elseif ($PSCmdlet.ParameterSetName -eq 'PSCredentialSet') {
             $user = $Credential.UserName
             $decryptedPassword = $Credential.GetNetworkCredential().Password
         }
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    if ($PsBoundParameters.ContainsKey("SkipCertificateCheck")) {
+    if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
         if (-not("placeholder" -as [type])) {
             add-type -TypeDefinition @"
 using System;

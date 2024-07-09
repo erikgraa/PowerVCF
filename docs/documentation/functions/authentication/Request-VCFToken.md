@@ -7,7 +7,7 @@ Requests an authentication token from SDDC Manager.
 ## Syntax
 
 ```powershell
-Request-VCFToken [-Fqdn] <String> [[-UserName] <String>] [[-Password] <String>] [[-Credential] <PSCredential>] [-SkipCertificateCheck] [<CommonParameters>]
+Request-VCFToken [-fqdn] <String> [[-username] <String>] [[-password] <String>] [[-credential] <PSCredential>] [-skipCertificateCheck] [<CommonParameters>]
 ```
 
 ## Description
@@ -19,7 +19,7 @@ The `Request-VCFToken` cmdlet connects to the specified SDDC Manager and request
 ### Example 1
 
 ```powershell
-Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName administrator@vsphere.local -Password VMw@re1!
+Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username administrator@vsphere.local -password VMw@re1!
 ```
 
 This example shows how to connect to the specified SDDC Manager to request API access and refresh tokens.
@@ -28,7 +28,7 @@ This example shows how to connect to the specified SDDC Manager to request API a
 
 ```powershell
 $secureString = Read-Host -AsSecureString 'Password'
-Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName admin@local -Password $secureString
+Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local -password $secureString
 ```
 
 This example shows how to connect to the SDDC Manager instance using local account `admin@local`.
@@ -36,7 +36,7 @@ This example shows how to connect to the SDDC Manager instance using local accou
 ### Example 3
 
 ```powershell
-Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName admin@local
+Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local
 ```
 
 This example shows how to connect to the SDDC Manager instance using local account `admin@local`.
@@ -45,8 +45,8 @@ The operator will be prompted for a password.
 ### Example 4
 
 ```powershell
-$credential = Get-Credential
-Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -Credential $credential
+$credential = Get-credential
+Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -credential $credential
 ```
 
 This example shows how to connect to the SDDC Manager instance.
@@ -54,7 +54,7 @@ This example shows how to connect to the SDDC Manager instance.
 ### Example 5
 
 ```powershell
-Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io
+Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io
 ```
 
 This example shows how to connect to the SDDC Manager instance.
@@ -62,7 +62,7 @@ The operator will be prompted for a username and password.
 
 ## Parameters
 
-### -Fqdn
+### -fqdn
 
 The fully qualified domain name or IP Address of the SDDC Manager instance.
 
@@ -78,7 +78,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -UserName
+### -username
 
 The username to authenticate to the SDDC Manager instance.
 
@@ -94,7 +94,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Password
+### -password
 
 The password to authenticate to the SDDC Manager instance. 
 This parameter takes either a string or a SecureString variable.
@@ -112,7 +112,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Credential
+### -credential
 
 Specifies a user account to authenticate to the SDDC Manager instance.
 
@@ -128,7 +128,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SkipCertificateCheck
+### -skipCertificateCheck
 
 Switch to skip certificate check when connecting to the SDDC Manager instance.
 
