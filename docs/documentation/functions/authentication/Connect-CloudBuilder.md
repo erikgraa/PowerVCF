@@ -7,7 +7,7 @@ Requests an authentication token from a VMware Cloud Builder instance.
 ## Syntax
 
 ```powershell
-Connect-CloudBuilder [-fqdn] <String> [[-username] <String>] [[-password] <String>] [-skipCertificateCheck] [<CommonParameters>]
+Connect-CloudBuilder [-Fqdn] <String> [[-UserName] <String>] [[-Password] <String>] [[-Credential] <PSCredential>] [-SkipCertificateCheck] [<CommonParameters>]
 ```
 
 ## Description
@@ -23,20 +23,56 @@ The `Connect-CloudBuilder` cmdlet connects to the specified VMware Cloud Builder
 ### Example 1
 
 ```powershell
-Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password VMware1!
+Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin -Password VMw@re1!
+```
+
+This example shows how to connect to the specified VMware Cloud Builder instance.
+
+### Example 2
+
+```powershell
+$secureString = Read-Host -AsSecureString 'Password'
+Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin -Password $secureString
+```
+
+This example shows how to connect to the specified VMware Cloud Builder instance.
+
+### Example 3
+
+```powershell
+Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -UserName admin
+```
+
+This example shows how to connect to the specified VMware Cloud Builder instance.
+The operator will be prompted for a password.
+
+### Example 4
+
+```powershell
+$credential = Get-Credential
+Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io -Credential $credential
+```
+
+This example shows how to connect to the specified VMware Cloud Builder instance.
+
+### Example 5
+
+```powershell
+Connect-CloudBuilder -Fqdn sfo-cb01.sfo.rainpole.io
 ```
 
 This example shows how to connect to the VMware Cloud Builder instance.
+The operator will be prompted for a username and password.
 
 ## Parameters
 
-### -fqdn
+### -Fqdn
 
 The fully qualified domain name of the VMware Cloud Builder instance.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: PSCredentialSet, UserNameAndPasswordSet
 Aliases:
 
 Required: True
@@ -46,29 +82,31 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -username
+### -UserName
 
 The username to authenticate to the VMware Cloud Builder instance.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: UserNameAndPasswordSet
 Aliases:
 
-Required: False
+Required: True
 Position: 2
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -password
+### -Password
 
-The password to authenticate to the VMware Cloud Builder instance.
+The password to authenticate to the VMware Cloud Builder instance. 
+This parameter takes either a string or a SecureString variable.
+If not specified, a SecureString variable will be prompted for.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: UserNameAndPasswordSet
 Aliases:
 
 Required: False
@@ -78,7 +116,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -skipCertificateCheck
+### -Credential
+
+Specifies a user account to authenticate to the SDDC Manager instance.
+
+```yaml
+Type: PSCredential
+Parameter Sets: PSCredentialSet
+Aliases:
+
+Required: True
+Position: 4
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SkipCertificateCheck
 
 Switch to skip certificate check when connecting to the VMware Cloud Builder instance.
 

@@ -7,7 +7,7 @@ Requests an authentication token from SDDC Manager.
 ## Syntax
 
 ```powershell
-Request-VCFToken [-fqdn] <String> [[-username] <String>] [[-password] <String>] [-skipCertificateCheck] [<CommonParameters>]
+Request-VCFToken [-Fqdn] <String> [[-UserName] <String>] [[-Password] <String>] [[-Credential] <PSCredential>] [-SkipCertificateCheck] [<CommonParameters>]
 ```
 
 ## Description
@@ -19,28 +19,56 @@ The `Request-VCFToken` cmdlet connects to the specified SDDC Manager and request
 ### Example 1
 
 ```powershell
-Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username administrator@vsphere.local -password VMw@re1!
+Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName administrator@vsphere.local -Password VMw@re1!
 ```
 
-This example shows how to connect to SDDC Manager to request API access and refresh tokens.
+This example shows how to connect to the specified SDDC Manager to request API access and refresh tokens.
 
 ### Example 2
 
 ```powershell
-Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local -password VMw@re1!VMw@re1!
+$secureString = Read-Host -AsSecureString 'Password'
+Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName admin@local -Password $secureString
 ```
 
-This example shows how to connect to SDDC Manager using local account `admin@local`.
+This example shows how to connect to the SDDC Manager instance using local account `admin@local`.
+
+### Example 3
+
+```powershell
+Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -UserName admin@local
+```
+
+This example shows how to connect to the SDDC Manager instance using local account `admin@local`.
+The operator will be prompted for a password.
+
+### Example 4
+
+```powershell
+$credential = Get-Credential
+Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io -Credential $credential
+```
+
+This example shows how to connect to the SDDC Manager instance.
+
+### Example 5
+
+```powershell
+Request-VCFToken -Fqdn sfo-vcf01.sfo.rainpole.io
+```
+
+This example shows how to connect to the SDDC Manager instance.
+The operator will be prompted for a username and password.
 
 ## Parameters
 
-### -fqdn
+### -Fqdn
 
 The fully qualified domain name or IP Address of the SDDC Manager instance.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: PSCredentialSet, UserNameAndPasswordSet
 Aliases:
 
 Required: True
@@ -50,29 +78,31 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -username
+### -UserName
 
 The username to authenticate to the SDDC Manager instance.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: UserNameAndPasswordSet
 Aliases:
 
-Required: False
+Required: True
 Position: 2
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -password
+### -Password
 
-The password to authenticate to the SDDC Manager instance.
+The password to authenticate to the SDDC Manager instance. 
+This parameter takes either a string or a SecureString variable.
+If not specified, a SecureString variable will be prompted for.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: UserNameAndPasswordSet
 Aliases:
 
 Required: False
@@ -82,7 +112,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -skipCertificateCheck
+### -Credential
+
+Specifies a user account to authenticate to the SDDC Manager instance.
+
+```yaml
+Type: PSCredential
+Parameter Sets: PSCredentialSet
+Aliases:
+
+Required: True
+Position: 4
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SkipCertificateCheck
 
 Switch to skip certificate check when connecting to the SDDC Manager instance.
 
