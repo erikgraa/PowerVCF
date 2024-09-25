@@ -37,7 +37,7 @@ if ($PSEdition -eq 'Desktop') {
 
 #Region Global Variables
 
-Set-Variable -Name msgVcfApiNotAvailable -Value "This API is not available in the latest versions of VMware Cloud Foundation.:" -Scope Global
+Set-Variable -Name msgVcfApiNotAvailable -Value "This API is not available in the latest versions of VMware Cloud Foundation:" -Scope Global
 Set-Variable -Name msgVcfApiNotSupported -Value "This API is not supported on this version of VMware Cloud Foundation:" -Scope Global
 Set-Variable -Name msgVcfApiDeprecated -Value "This API is deprecated on this version of VMware Cloud Foundation:" -Scope Global
 
@@ -55,11 +55,25 @@ Function Request-VCFToken {
 
         .EXAMPLE
         Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username administrator@vsphere.local -password VMw@re1!
-        This example shows how to connect to SDDC Manager to request API access and refresh tokens.
+        This example shows how to connect to SDDC Manager using a clear-text username and password.
 
         .EXAMPLE
-        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local -password VMw@re1!VMw@re1!
-        This example shows how to connect to SDDC Manager using local account admin@local.
+        $secureString = Read-Host -AsSecureString 'Password'
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local -password $secureString
+        This example shows how to connect to the SDDC Manager instance using a SecureString password.
+
+        .EXAMPLE
+        $credential = Get-Credential
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -credential $credential
+        This example shows how to connect to the SDDC Manager instance using a PSCredential object.
+
+        .EXAMPLE
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io -username admin@local
+        This example shows how to connect to the SDDC Manager instance where the user will be prompted for a password.
+
+        .EXAMPLE
+        Request-VCFToken -fqdn sfo-vcf01.sfo.rainpole.io
+        This example shows how to connect to the SDDC Manager instance where the user will be prompted for a username and password.
 
         .PARAMETER fqdn
         The fully qualified domain name of the SDDC Manager instance.
@@ -69,22 +83,49 @@ Function Request-VCFToken {
 
         .PARAMETER password
         The password to authenticate to the SDDC Manager instance.
+        This parameter takes either a string or a SecureString value.
+        If not specified, the user will be prompted for the SecureString value.
+
+        .PARAMETER credential
+        Specifies to authenticate to the SDDC Manager instance using a PSCredential object.
 
         .PARAMETER skipCertificateCheck
         Switch to skip certificate check when connecting to the SDDC Manager instance.
     #>
 
+    [CmdletBinding(DefaultParameterSetName = 'PSCredentialSet')]
+
     Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password,
+        [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')]
+        [Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')] [ValidateNotNullOrEmpty()] [string]$fqdn,
+        [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')] [ValidateNotNullOrEmpty()] [string]$username,
+        [Parameter (Mandatory = $false, ParameterSetName = 'UserNameAndPasswordSet')][ValidateNotNullOrEmpty()] [Object]$password,
+        [Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')] [System.Management.Automation.PSCredential] [System.Management.Automation.Credential()]$credential,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$skipCertificateCheck
     )
 
-    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
-        $creds = Get-Credential # Request Credentials
-        $username = $creds.UserName.ToString()
-        $password = $creds.GetNetworkCredential().password
+    try {
+        if ($PSCmdlet.ParameterSetName -eq 'UserNameAndPasswordSet') {
+            $user = $UserName
+
+            if (-not($PSBoundParameters.ContainsKey('password'))) {
+                $password = Read-Host -AsSecureString 'Password'
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+            } elseif ($password -isnot [SecureString]) {
+                if ($password -isnot [System.String]) {
+                    throw 'Password should either be a String or SecureString (recommended).'
+                } else {
+                    $decryptedPassword = $password
+                }
+            } else {
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+            }
+        } elseif ($PSCmdlet.ParameterSetName -eq 'PSCredentialSet') {
+            $user = $Credential.UserName
+            $decryptedPassword = $Credential.GetNetworkCredential().Password
+        }
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 
     if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
@@ -112,13 +153,13 @@ public static class Placeholder {
 
     $Global:sddcManager = $fqdn
     $headers = @{"Content-Type" = "application/json" }
-    $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
-    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
+    $uri = "https://$sddcManager/v1/tokens"
+    $body = '{"username": "' + $user + '","password": "' + $decryptedPassword + '"}'
 
     Try {
         # Checking authentication with SDDC Manager
         if ($PSEdition -eq 'Core') {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck
             $Global:accessToken = $response.accessToken
             $Global:refreshToken = $response.refreshToken.id
         } else {
@@ -145,8 +186,26 @@ Function Connect-CloudBuilder {
         credentials in a base64 string.
 
         .EXAMPLE
-        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password VMware1!
-        This example shows how to connect to the VMware Cloud Builder instance.
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password VMw@re1!
+        This example shows how to connect to the VMware Cloud Builder instance using a clear-text username and password.
+
+        .EXAMPLE
+        $secureString = Read-Host -AsSecureString 'Password'
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin -password $secureString
+        This example shows how to connect to the specified VMware Cloud Builder instance using a SecureString password.
+
+        .EXAMPLE
+        $credential = Get-Credential
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -credential $credential
+        This example shows how to connect to the specified VMware Cloud Builder instance using a PSCredential object.
+
+        .EXAMPLE
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io -username admin
+        This example shows how to connect to the specified VMware Cloud Builder instance where the user will be prompted for a password.
+
+        .EXAMPLE
+        Connect-CloudBuilder -fqdn sfo-cb01.sfo.rainpole.io
+        This example shows how to connect to the specified VMware Cloud Builder instance where the user will be prompted for a username and password.
 
         .PARAMETER fqdn
         The fully qualified domain name of the VMware Cloud Builder instance.
@@ -156,22 +215,50 @@ Function Connect-CloudBuilder {
 
         .PARAMETER password
         The password to authenticate to the VMware Cloud Builder instance.
+        This parameter takes either a string or a SecureString value.
+        If not specified, the user will be prompted for the SecureString value.
+
+        .PARAMETER credential
+        Specifies a user account to authenticate to the SDDC Manager instance using a PSCredential object.
 
         .PARAMETER skipCertificateCheck
         Switch to skip certificate check when connecting to the VMware Cloud Builder instance.
     #>
 
+    [CmdletBinding(DefaultParameterSetName = 'PSCredentialSet')]
+
     Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password,
+        [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')]
+        [Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')] [ValidateNotNullOrEmpty()] [string]$fqdn,
+        [Parameter (Mandatory = $true, ParameterSetName = 'UserNameAndPasswordSet')] [ValidateNotNullOrEmpty()] [string]$username,
+        [Parameter (Mandatory = $false, ParameterSetName = 'UserNameAndPasswordSet')] [ValidateNotNullOrEmpty()] [Object]$password,
+        [Parameter (Mandatory = $true, ParameterSetName = 'PSCredentialSet')]
+        [System.Management.Automation.PSCredential] [System.Management.Automation.Credential()]$credential,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$skipCertificateCheck
     )
 
-    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
-        $creds = Get-Credential # Request Credentials
-        $username = $creds.UserName.ToString()
-        $password = $creds.GetNetworkCredential().password
+    try {
+        if ($PSCmdlet.ParameterSetName -eq 'UserNameAndPasswordSet') {
+            $user = $username
+
+            if (-not($PSBoundParameters.ContainsKey('password'))) {
+                $Password = Read-Host -AsSecureString 'Password'
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+            } elseif ($password -isnot [SecureString]) {
+                if ($password -isnot [System.String]) {
+                    throw 'Password should either be a String or SecureString (recommended).'
+                } else {
+                    $decryptedPassword = $password
+                }
+            } else {
+                $decryptedPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+            }
+        } elseif ($PSCmdlet.ParameterSetName -eq 'PSCredentialSet') {
+            $user = $Credential.UserName
+            $decryptedPassword = $Credential.GetNetworkCredential().Password
+        }
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 
     if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
@@ -198,21 +285,21 @@ public static class Placeholder {
     }
 
     $Global:cloudBuilder = $fqdn
-    $Global:base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username, $password))) # Create Basic Authentication Encoded Credentials
+    $Global:base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $decryptedPassword))) # Create Basic Authentication Encoded Credentials
 
     $headers = @{"Accept" = "application/json" }
     $headers.Add("Authorization", "Basic $base64AuthInfo")
-    $uri = "https://$cloudBuilder/v1/sddcs" # Set URI for executing an API call to validate authentication
+    $uri = "https://$cloudBuilder/v1/sddcs"
 
     Try {
-        # Checking authentication with VMware Cloud Builder
+        # Checking authentication with VMware Cloud Builder.
         if ($PSEdition -eq 'Core') {
-            $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
+            $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers -SkipCertificateCheck
         } else {
             $response = Invoke-WebRequest -Method GET -Uri $uri -Headers $headers
         }
         if ($response.StatusCode -eq 200) {
-            Write-Output "Successfully connected to the Cloud Builder Appliance: $cloudBuilder"
+            Write-Output "Successfully connected to the Cloud Builder appliance: $cloudBuilder"
         }
     } Catch {
         ResponseException -object $_
@@ -6379,7 +6466,7 @@ Function ResponseException {
     Write-Host "Script File:       $($object.InvocationInfo.ScriptName) Line: $($object.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
     Write-Host "Relevant Command:  $($object.InvocationInfo.Line.trim())" -ForegroundColor Red
     Write-Host "Target Uri:         $($object.TargetObject.RequestUri.AbsoluteUri)" -ForegroundColor Red
-    if($body -ne $null -and $body -ne "") {
+    if ($body -ne $null -and $body -ne "") {
         Write-Host "Target Payload:         $body" -ForegroundColor Red
     }
     Write-Host "Exception Message: $($object.Exception.Message)" -ForegroundColor Red
@@ -6388,8 +6475,8 @@ Function ResponseException {
 
 Function createHeader {
     $Global:headers = @{
-        "Accept" = "application/json"
-        "Content-Type" = "application/json"
+        "Accept"        = "application/json"
+        "Content-Type"  = "application/json"
         "Authorization" = "Bearer $accessToken"
     }
 }
