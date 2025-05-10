@@ -4564,6 +4564,7 @@ Function checkVCFToken {
             $uri = "https://$sddcManager/v1/tokens/access-token/refresh"
             $response = Invoke-RestMethod -Method PATCH -Uri $uri -Headers $headers -Body $refreshToken
             $Global:accessToken = $response
+            createHeader # Set the Accept and Authorization headers with the new access token.
         }
     }
 }
